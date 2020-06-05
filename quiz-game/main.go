@@ -5,7 +5,6 @@ import (
 	"encoding/csv"
 	"flag"
 	"fmt"
-	"log"
 	"os"
 )
 
@@ -47,7 +46,8 @@ func getQuizQuestionsFromCSV() {
 
 	problems, err := parseCSV(filename)
 	if err != nil {
-		fmt.Println("Empty file...")
+		fmt.Printf("Error parsing file %v\n", filename)
+		os.Exit(1)
 	}
 
 	for _, p := range problems {
@@ -78,7 +78,7 @@ func displayResults() {
 func parseCSV(filename string) ([][]string, error) {
 	file, err := os.Open(filename)
 	if err != nil {
-		log.Fatal(err)
+		return [][]string{}, err
 	}
 	defer file.Close()
 
