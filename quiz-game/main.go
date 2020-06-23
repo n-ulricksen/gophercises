@@ -15,7 +15,6 @@ type QuizQuestion struct {
 }
 
 var quizQuestions []*QuizQuestion
-var isQuizOver bool
 var correctCount int
 var timer *time.Timer
 
