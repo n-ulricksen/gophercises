@@ -50,25 +50,25 @@ func YAMLHandler(yml []byte, fallback http.Handler) (http.HandlerFunc, error) {
 	return MapHandler(yamlMap, fallback), nil
 }
 
-type yamlUrlPaths []struct {
+type yamlUrlPath struct {
 	Path string `yaml:"path"`
 	URL  string `yaml:"url"`
 }
 
-func parseYAML(yml []byte) (*yamlUrlPaths, error) {
-	urlPaths := yamlUrlPaths{}
+func parseYAML(yml []byte) ([]yamlUrlPath, error) {
+	urlPaths := []yamlUrlPath{}
 
 	err := yaml.Unmarshal(yml, &urlPaths)
 	if err != nil {
 		return nil, err
 	}
 
-	return &urlPaths, nil
+	return urlPaths, nil
 }
 
-func buildMapFromYaml(yml *yamlUrlPaths) map[string]string {
+func buildMapFromYaml(ymlPaths []yamlUrlPath) map[string]string {
 	yamlMap := map[string]string{}
-	for _, urlPath := range *yml {
+	for _, urlPath := range ymlPaths {
 		path := urlPath.Path
 		url := urlPath.URL
 		yamlMap[path] = url
