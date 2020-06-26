@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -11,6 +12,10 @@ import (
 func main() {
 	mux := defaultMux()
 
+	// Parse flags
+	yamlFlag := flag.String("yaml", "../paths.yaml", "yaml file location")
+	flag.Parse()
+
 	// Build the MapHandler using the mux as the fallback
 	pathsToUrls := map[string]string{
 		"/urlshort-godoc": "https://godoc.org/github.com/gophercises/urlshort",
@@ -20,7 +25,7 @@ func main() {
 
 	// Build the YAMLHandler using the mapHandler as the
 	// fallback
-	yaml, err := ioutil.ReadFile("../paths.yaml")
+	yaml, err := ioutil.ReadFile(*yamlFlag)
 	if err != nil {
 		panic(err)
 	}
