@@ -2,9 +2,9 @@ package urlshort
 
 import (
 	"encoding/json"
-	//"fmt"
-	"gopkg.in/yaml.v2"
 	"net/http"
+
+	"gopkg.in/yaml.v2"
 )
 
 // MapHandler will return an http.HandlerFunc (which also
@@ -60,6 +60,18 @@ func JSONHandler(jsn []byte, fallback http.Handler) (http.HandlerFunc, error) {
 	jsonMap := buildUrlPathMap(parsedJSON)
 
 	return MapHandler(jsonMap, fallback), nil
+}
+
+func BoltDBHandler(fallback http.Handler) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestPath := r.URL.Path
+		redirectUrl, err := GetPathURL(requestPath)
+		if err != nil {
+			fallback.ServeHTTP(w, r)
+		} else {
+			http.Redirect(w, r, redirectUrl, http.StatusFound)
+		}
+	})
 }
 
 type urlPath struct {
