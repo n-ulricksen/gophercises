@@ -49,7 +49,11 @@ func main() {
 		panic(err)
 	}
 	fmt.Println("Starting the server on :8080")
-	http.ListenAndServe(":8080", jsonHandler)
+
+	// Build the BoltDBHandler using the JSONHandler as the fallback
+	boltDBHandler := urlshort.BoltDBHandler(jsonHandler)
+
+	http.ListenAndServe(":8080", boltDBHandler)
 
 }
 
