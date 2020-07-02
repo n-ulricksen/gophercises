@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 )
 
 var tpl *template.Template
@@ -24,7 +25,7 @@ var defaultHandlerTemplate = `
 	<title></title>
 </head>
 <body>
-    <h1>{{.Title}}</h1>_
+    <h1>{{.Title}}</h1>
     {{range .Paragraphs}}
         <p>{{.}}</p>
     {{end}}
@@ -46,11 +47,23 @@ type handler struct {
 }
 
 func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("handling...")
-	err := tpl.Execute(w, h.story["intro"])
-	if err != nil {
-		log.Fatal(err)
+	path := strings.TrimSpace(r.URL.Path)
+	if path == "" || path == "/" {
+		// Start story from beginning
+		path = "/intro"
 	}
+	// trim preceding slash ('/')
+	path = path[1:]
+
+	if chapter, ok := h.story[path]; ok {
+		err := tpl.Execute(w, chapter)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "Something went wrong...", http.StatusInternalServerError)
+		}
+		return
+	}
+	http.Error(w, "Chapter not found", http.StatusNotFound)
 }
 
 func JsonStory(jsonFile io.Reader) (Story, error) {

@@ -26,8 +26,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("%+v\n", story)
-
 	h := cyoa.NewHandler(story)
 	fmt.Printf("Starting the server on port: %d\n", *port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), h))
