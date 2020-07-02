@@ -2,7 +2,6 @@ package cyoa
 
 import (
 	"encoding/json"
-	"fmt"
 	"html/template"
 	"io"
 	"log"
@@ -88,8 +87,14 @@ func WithTemplate(t *template.Template) HandlerOption {
 	}
 }
 
+func WithPathFunc(fn func(r *http.Request) string) HandlerOption {
+	return func(h *handler) {
+		h.pathFn = fn
+	}
+}
+
 func NewHandler(s Story, opts ...HandlerOption) http.Handler {
-	h := handler{s, tpl}
+	h := handler{s, tpl, defaultPathFn}
 
 	// Apply all options
 	for _, opt := range opts {
@@ -100,18 +105,23 @@ func NewHandler(s Story, opts ...HandlerOption) http.Handler {
 }
 
 type handler struct {
-	story Story
-	t     *template.Template
+	story  Story
+	t      *template.Template
+	pathFn func(r *http.Request) string
 }
 
-func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func defaultPathFn(r *http.Request) string {
 	path := strings.TrimSpace(r.URL.Path)
 	if path == "" || path == "/" {
 		// Start story from beginning
 		path = "/intro"
 	}
 	// trim preceding slash ('/')
-	path = path[1:]
+	return path[1:]
+}
+
+func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	path := h.pathFn(r)
 
 	if chapter, ok := h.story[path]; ok {
 		err := h.t.Execute(w, chapter)
@@ -143,17 +153,4 @@ type Chapter struct {
 		Text    string `json:"text"`
 		Chapter string `json:"arc"`
 	} `json:"options"`
-}
-
-func main() {
-	fmt.Println("vim-go")
-
-	// TODO:
-	// Parse JSON
-	// Build http.Handler
-	// Parse paths
-	// Style HTML
-	// Custom Templates
-	// Functional Options
-	// Custom Paths
 }
