@@ -2,7 +2,6 @@ package linkparser
 
 import (
 	"io"
-	"log"
 	"strings"
 
 	"golang.org/x/net/html"
@@ -13,10 +12,10 @@ type Link struct {
 	Text string
 }
 
-func ParseHTMLLinks(r io.Reader) []Link {
+func ParseHTMLLinks(r io.Reader) ([]Link, error) {
 	doc, err := html.Parse(r)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	var links []Link
@@ -35,7 +34,7 @@ func ParseHTMLLinks(r io.Reader) []Link {
 	}
 	dfs(doc)
 
-	return links
+	return links, nil
 }
 
 func createLink(n *html.Node) Link {

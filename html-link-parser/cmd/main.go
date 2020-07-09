@@ -19,7 +19,10 @@ func main() {
 	htmlReader := response.Body
 	defer htmlReader.Close()
 
-	htmlLinks := linkparser.ParseHTMLLinks(htmlReader)
+	htmlLinks, err := linkparser.ParseHTMLLinks(htmlReader)
+	if err != nil {
+		log.Fatal(err)
+	}
 	for _, link := range htmlLinks {
 		fmt.Println(link)
 	}
@@ -33,7 +36,10 @@ func main() {
 	`
 	r := strings.NewReader(testHtml)
 
-	htmlLinks2 := linkparser.ParseHTMLLinks(r)
+	htmlLinks2, err := linkparser.ParseHTMLLinks(r)
+	if err != nil {
+		log.Fatal(err)
+	}
 	for _, link := range htmlLinks2 {
 		fmt.Println(link)
 	}
