@@ -52,22 +52,19 @@ func createLink(n *html.Node) Link {
 }
 
 func getLinkText(n *html.Node) string {
-	var textElements []string
+	var text string
 
 	var dfs func(*html.Node)
 	dfs = func(n *html.Node) {
 		for child := n.FirstChild; child != nil; child = child.NextSibling {
-			// Check the length of the trimmed string to see if the string
-			// contains any meaningful characters.
-			trimmedText := strings.TrimSpace(child.Data)
-			if child.Type == html.TextNode && len(trimmedText) > 0 {
+			if child.Type == html.TextNode {
 				// This is the link's text!
-				textElements = append(textElements, trimmedText)
+				text += child.Data
 			}
 			dfs(child)
 		}
 	}
 	dfs(n)
 
-	return strings.Join(textElements, " ")
+	return strings.Join(strings.Fields(text), " ")
 }

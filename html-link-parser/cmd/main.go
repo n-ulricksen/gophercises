@@ -10,17 +10,8 @@ import (
 )
 
 func main() {
-	html := `
-		<a href="/dog">
-  			<span>Something in a span</span>
-  			Text not in a span
-  			<b>Bold text!</b>
-		</a>
-	`
-	r := strings.NewReader(html)
-
 	htmlURL := "https://ulricksen.codes/"
-	// 	htmlURL := "https://en.wikipedia.org/wiki/Democratic_Republic_of_the_Congo"
+	// htmlURL := "https://en.wikipedia.org/wiki/Democratic_Republic_of_the_Congo"
 	response, err := http.Get(htmlURL)
 	if err != nil {
 		log.Fatal(err)
@@ -32,6 +23,15 @@ func main() {
 	for _, link := range htmlLinks {
 		fmt.Println(link)
 	}
+
+	testHtml := `
+		<a href="/dog">
+  			<span>Something in a span</span>
+  			Text not in a span
+  			<b>Bold text!</b>
+		</a>
+	`
+	r := strings.NewReader(testHtml)
 
 	htmlLinks2 := linkparser.ParseHTMLLinks(r)
 	for _, link := range htmlLinks2 {
