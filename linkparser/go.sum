@@ -1,4 +1,7 @@
 github.com/ulricksennick/gophercises v0.0.0-20200709005513-3f1b207b4e0b h1:T280wfJCd9YBYB7MMYTRP5u2/xsDEmNVLyzVySQ9ANM=
+github.com/ulricksennick/gophercises v0.0.0-20200710004718-3e34821f1531 h1:ofSGbxkDEVCBn+W3FAJjwljzvYIFBdkEsPM0qksfSwo=
+github.com/ulricksennick/gophercises/linkparser v0.0.0-20200710005812-085b3004675d h1:ItTgX17HOspka3zoljMwfmGpJpY0lXTWrnbW62cOA0I=
+github.com/ulricksennick/gophercises/linkparser v0.0.0-20200710005812-085b3004675d/go.mod h1:r5P4srPKi1s/9lrrvz+kT0o5pXbnrs0n5zGp9ltm/+M=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
 golang.org/x/net v0.0.0-20190404232315-eb5bcb51f2a3/go.mod h1:t9HGtf8HONx5eT2rtn7q6eTqICYqUVnKs3thJo3Qplg=
