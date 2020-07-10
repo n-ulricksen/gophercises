@@ -1,4 +1,4 @@
-module github.com/ulricksennick/gophercises/linkparser
+module github.com/ulricksennick/linkparser
 
 go 1.14
 
