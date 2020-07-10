@@ -21,11 +21,14 @@ func main() {
 	urlInputString := args[0]
 
 	// Parse the user specified URL, get the sitemap domain
-	parsedUrl, err := url.Parse(urlInputString)
+	parsedInputUrl, err := url.Parse(urlInputString)
 	if err != nil {
 		log.Fatal("URL parse error:", err)
 	}
-	sitemapDomain := getDomainFromURL(parsedUrl)
+	sitemapDomain := getDomainFromURL(parsedInputUrl)
+	if sitemapDomain == "" {
+		log.Fatal("Invalid URL...")
+	}
 	fmt.Println("SITEMAP DOMAIN:", sitemapDomain)
 
 	// Make HTTP request, get the message body
@@ -50,9 +53,29 @@ func main() {
 			log.Fatal(err)
 		}
 
-		if isRelativeLink(u) || getDomainFromURL(u) == sitemapDomain {
-			sitemapLinks = append(sitemapLinks, link.Href)
+		// Skip anchor-tag links
+		if isAnchorLink(u) {
 			continue
+		}
+
+		if isRelativeLink(u) {
+			var absLink string
+
+			absLink += parsedInputUrl.String()
+			if absLink[len(absLink)-1] == byte('/') {
+				absLink = absLink[0 : len(absLink)-1]
+			}
+			if u.String()[0] != byte('/') {
+				absLink += "/"
+			}
+			absLink += u.String()
+
+			sitemapLinks = append(sitemapLinks, absLink)
+			continue
+		}
+
+		if getDomainFromURL(u) == sitemapDomain {
+			sitemapLinks = append(sitemapLinks, u.String())
 		}
 	}
 	for _, l := range sitemapLinks {
@@ -65,6 +88,10 @@ func main() {
 	// Output the built XML to stdout, or file specified by command-line flag
 }
 
+func isAnchorLink(u *url.URL) bool {
+	return u.Fragment != ""
+}
+
 // Determine if the link is a relative link to a site on the same domain
 func isRelativeLink(u *url.URL) bool {
 	return !u.IsAbs() && u.Hostname() == ""
@@ -72,6 +99,10 @@ func isRelativeLink(u *url.URL) bool {
 
 // Get the domain name from a url.URL
 func getDomainFromURL(u *url.URL) string {
+	if u.Hostname() == "" {
+		return ""
+	}
+
 	urlParts := strings.Split(u.Hostname(), ".")
 	l := len(urlParts)
 
