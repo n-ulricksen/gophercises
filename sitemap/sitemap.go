@@ -37,22 +37,28 @@ func main() {
 
 	// Check each link to see if it is in the sitemap domain
 	sitemapLinksLookup := make(map[string]bool)
+	var newLinks []string
 	for _, l := range links {
 		u, err := url.Parse(l.Href)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		// Do not include links to anchor tags
-		if isAnchorLink(u) {
+		// Do not include empty links or anchor tag links
+		if u.String() == "" || isAnchorLink(u) {
 			continue
 		}
 
+		var sitemapLink string
 		if linkInDomain(u, parsedInputUrl) {
-			sitemapLinksLookup[u.String()] = true
+			sitemapLink = u.String()
 		} else if isRelativeLink(u) {
-			absUrl := relToAbsURL(u.String(), urlInputString)
-			sitemapLinksLookup[absUrl] = true
+			sitemapLink = relToAbsURL(u.String(), urlInputString)
+		}
+
+		if sitemapLink != "" {
+			sitemapLinksLookup[sitemapLink] = true
+			newLinks = append(newLinks, sitemapLink)
 		}
 	}
 
