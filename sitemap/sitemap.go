@@ -36,9 +36,28 @@ func main() {
 	}
 
 	// Check each link to see if it is in the sitemap domain
-	sitemapLinks := filterLinksByDomain(links, parsedInputUrl)
-	for _, l := range sitemapLinks {
-		fmt.Println(l)
+	sitemapLinksLookup := make(map[string]bool)
+	for _, l := range links {
+		u, err := url.Parse(l.Href)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// Do not include links to anchor tags
+		if isAnchorLink(u) {
+			continue
+		}
+
+		if linkInDomain(u, parsedInputUrl) {
+			sitemapLinksLookup[u.String()] = true
+		} else if isRelativeLink(u) {
+			absUrl := relToAbsURL(u.String(), urlInputString)
+			sitemapLinksLookup[absUrl] = true
+		}
+	}
+
+	for site := range sitemapLinksLookup {
+		fmt.Println(site)
 	}
 
 	// TODO:
@@ -47,43 +66,29 @@ func main() {
 	// Output the built XML to stdout, or file specified by command-line flag
 }
 
-func filterLinksByDomain(links []linkparser.Link, domainURL *url.URL) []string {
-	var filteredLinks []string
-	for _, link := range links {
-		u, err := url.Parse(link.Href)
-		if err != nil {
-			log.Fatal(err)
-		}
+func relToAbsURL(relUrl string, baseUrl string) string {
+	var absUrl string
 
-		// Skip anchor-tag links
-		if isAnchorLink(u) {
-			continue
-		}
+	absUrl += baseUrl
+	// Trim possible '/' at end of base URL
+	if absUrl[len(absUrl)-1] == byte('/') {
+		absUrl = absUrl[0 : len(absUrl)-1]
+	}
+	// Add '/' to beginning of path if necessary
+	if relUrl[0] != byte('/') {
+		absUrl += "/"
+	}
+	absUrl += relUrl
 
-		if isRelativeLink(u) {
-			var absLink string
+	return absUrl
+}
 
-			absLink += domainURL.String()
-			// Trim possible '/' at end of base URL
-			if absLink[len(absLink)-1] == byte('/') {
-				absLink = absLink[0 : len(absLink)-1]
-			}
-			// Add '/' to beginning of path if necessary
-			if u.String()[0] != byte('/') {
-				absLink += "/"
-			}
-			absLink += u.String()
-
-			filteredLinks = append(filteredLinks, absLink)
-			continue
-		}
-
-		if getDomainFromURL(u) == getDomainFromURL(domainURL) {
-			filteredLinks = append(filteredLinks, u.String())
-		}
+func linkInDomain(u *url.URL, domainURL *url.URL) bool {
+	if getDomainFromURL(u) == getDomainFromURL(domainURL) {
+		return true
 	}
 
-	return filteredLinks
+	return false
 }
 
 func getHTTPBody(urlString string) io.ReadCloser {
