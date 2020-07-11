@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -20,33 +21,34 @@ func main() {
 	}
 	urlInputString := args[0]
 
-	// Parse the user specified URL, get the sitemap domain
+	// Parse the user specified URL, make HTTP request
 	parsedInputUrl, err := url.Parse(urlInputString)
 	if err != nil {
 		log.Fatal("URL parse error:", err)
 	}
-	sitemapDomain := getDomainFromURL(parsedInputUrl)
-	if sitemapDomain == "" {
-		log.Fatal("Invalid URL...")
-	}
-	fmt.Println("SITEMAP DOMAIN:", sitemapDomain)
-
-	// Make HTTP request, get the message body
-	resp, err := http.Get(urlInputString)
-	if err != nil {
-		log.Fatal("URL parse error:", err)
-	}
-	respReader := resp.Body
-	defer respReader.Close()
+	httpBody := getHTTPBody(urlInputString)
+	defer httpBody.Close()
 
 	// Find all links on the page
-	links, err := linkparser.ParseHTMLLinks(respReader)
+	links, err := linkparser.ParseHTMLLinks(httpBody)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Check each link to see if it is in the sitemap domain
-	var sitemapLinks []string
+	sitemapLinks := filterLinksByDomain(links, parsedInputUrl)
+	for _, l := range sitemapLinks {
+		fmt.Println(l)
+	}
+
+	// TODO:
+	// Repeatedly parse all new sitemap links for new links
+	// Once no more new links can be found, build XML sitemap with found links
+	// Output the built XML to stdout, or file specified by command-line flag
+}
+
+func filterLinksByDomain(links []linkparser.Link, domainURL *url.URL) []string {
+	var filteredLinks []string
 	for _, link := range links {
 		u, err := url.Parse(link.Href)
 		if err != nil {
@@ -61,31 +63,35 @@ func main() {
 		if isRelativeLink(u) {
 			var absLink string
 
-			absLink += parsedInputUrl.String()
+			absLink += domainURL.String()
+			// Trim possible '/' at end of base URL
 			if absLink[len(absLink)-1] == byte('/') {
 				absLink = absLink[0 : len(absLink)-1]
 			}
+			// Add '/' to beginning of path if necessary
 			if u.String()[0] != byte('/') {
 				absLink += "/"
 			}
 			absLink += u.String()
 
-			sitemapLinks = append(sitemapLinks, absLink)
+			filteredLinks = append(filteredLinks, absLink)
 			continue
 		}
 
-		if getDomainFromURL(u) == sitemapDomain {
-			sitemapLinks = append(sitemapLinks, u.String())
+		if getDomainFromURL(u) == getDomainFromURL(domainURL) {
+			filteredLinks = append(filteredLinks, u.String())
 		}
 	}
-	for _, l := range sitemapLinks {
-		fmt.Println(l)
-	}
 
-	// TODO:
-	// Repeatedly parse all new sitemap links for new links
-	// Once no more new links can be found, build XML sitemap with found links
-	// Output the built XML to stdout, or file specified by command-line flag
+	return filteredLinks
+}
+
+func getHTTPBody(urlString string) io.ReadCloser {
+	resp, err := http.Get(urlString)
+	if err != nil {
+		log.Fatal("URL parse error:", err)
+	}
+	return resp.Body
 }
 
 func isAnchorLink(u *url.URL) bool {
