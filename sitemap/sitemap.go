@@ -21,53 +21,79 @@ func main() {
 	}
 	urlInputString := args[0]
 
-	// Parse the user specified URL, make HTTP request
+	// Verify starting URL is valid
 	parsedInputUrl, err := url.Parse(urlInputString)
 	if err != nil {
 		log.Fatal("URL parse error:", err)
 	}
-	httpBody := getHTTPBody(urlInputString)
-	defer httpBody.Close()
-
-	// Find all links on the page
-	links, err := linkparser.ParseHTMLLinks(httpBody)
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	// Check each link to see if it is in the sitemap domain
-	sitemapLinksLookup := make(map[string]bool)
-	var newLinks []string
-	for _, l := range links {
-		u, err := url.Parse(l.Href)
+	visitedLinks := map[string]bool{urlInputString: true}
+	newLinks := []string{urlInputString}
+	var sitemapLinks []string
+
+	for len(newLinks) > 0 {
+		fmt.Println("QUEUE:", newLinks)
+		link := newLinks[0]
+		newLinks = newLinks[1:]
+
+		// Parse the user specified URL, make HTTP request
+		currentUrl, parseErr := url.Parse(link)
+		httpBody, getErr := getHTTPBody(currentUrl.String())
+		// Skip invalid links or pages requiring authentication
+		if parseErr != nil || getErr != nil {
+			continue
+		}
+		defer httpBody.Close()
+
+		// Find all links on the page
+		possibleLinks, err := linkparser.ParseHTMLLinks(httpBody)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		// Do not include empty links or anchor tag links
-		if u.String() == "" || isAnchorLink(u) {
-			continue
+		for _, l := range possibleLinks {
+			u, err := url.Parse(l.Href)
+
+			// Skip any invalid urls
+			if err != nil {
+				continue
+			}
+
+			// Check if link has been visited
+			if visitedLinks[u.String()] {
+				continue
+			}
+			visitedLinks[u.String()] = true
+
+			// Do not include empty links or anchor tag links
+			if u.String() == "" || isAnchorLink(u) {
+				continue
+			}
+
+			var sitemapLink string
+			if linkInDomain(u, parsedInputUrl) {
+				sitemapLink = u.String()
+			} else if isRelativeLink(u) {
+				sitemapLink = relToAbsURL(u.String(), urlInputString)
+			}
+
+			if sitemapLink != "" {
+				newLinks = append(newLinks, sitemapLink)
+				sitemapLinks = append(sitemapLinks, sitemapLink)
+			}
 		}
 
-		var sitemapLink string
-		if linkInDomain(u, parsedInputUrl) {
-			sitemapLink = u.String()
-		} else if isRelativeLink(u) {
-			sitemapLink = relToAbsURL(u.String(), urlInputString)
-		}
-
-		if sitemapLink != "" {
-			sitemapLinksLookup[sitemapLink] = true
-			newLinks = append(newLinks, sitemapLink)
-		}
 	}
 
-	for site := range sitemapLinksLookup {
-		fmt.Println(site)
-	}
+	fmt.Println(sitemapLinks)
+
+	// for site := range visitedLinks {
+	// 	fmt.Println(site)
+	// }
 
 	// TODO:
-	// Repeatedly parse all new sitemap links for new links
+	// (Optimize with goroutines)
 	// Once no more new links can be found, build XML sitemap with found links
 	// Output the built XML to stdout, or file specified by command-line flag
 }
@@ -97,12 +123,12 @@ func linkInDomain(u *url.URL, domainURL *url.URL) bool {
 	return false
 }
 
-func getHTTPBody(urlString string) io.ReadCloser {
+func getHTTPBody(urlString string) (io.ReadCloser, error) {
 	resp, err := http.Get(urlString)
 	if err != nil {
-		log.Fatal("URL parse error:", err)
+		return nil, err
 	}
-	return resp.Body
+	return resp.Body, nil
 }
 
 func isAnchorLink(u *url.URL) bool {
@@ -122,6 +148,9 @@ func getDomainFromURL(u *url.URL) string {
 
 	urlParts := strings.Split(u.Hostname(), ".")
 	l := len(urlParts)
+	if l < 2 {
+		return ""
+	}
 
 	return strings.Join(urlParts[l-2:], ".")
 }
