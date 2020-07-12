@@ -27,12 +27,25 @@ func main() {
 		log.Fatal("URL parse error:", err)
 	}
 
+	sitemapLinks := getSitemapLinks(parsedInputUrl)
+
+	fmt.Println(sitemapLinks)
+
+	// TODO:
+	// (Optimize with goroutines)
+	// Use linked list for bfs newLinks queue if necessary - "container/list"
+	// Once no more new links can be found, build XML sitemap with found links
+	// Output the built XML to stdout, or file specified by command-line flag
+}
+
+func getSitemapLinks(parsedInputUrl *url.URL) []string {
+	// TODO: Break apart this monster function
 	// Check each link to see if it is in the sitemap domain
-	visitedLinks := map[string]bool{urlInputString: true}
-	newLinks := []string{urlInputString}
+	visitedLinks := map[string]bool{parsedInputUrl.String(): true}
+	newLinks := []string{parsedInputUrl.String()}
 	var sitemapLinks []string
 
-	fmt.Println("INPUT URL:", parsedInputUrl)
+	fmt.Println("-x- Input URL:", parsedInputUrl)
 
 	for len(newLinks) > 0 {
 		link := newLinks[0]
@@ -47,7 +60,7 @@ func main() {
 		}
 		defer httpBody.Close()
 
-		fmt.Println("-x- Parsing URL:", currentUrl.String())
+		// fmt.Println("-x- Parsing URL:", currentUrl.String())
 
 		// Find all links on the page
 		possibleLinks, err := linkparser.ParseHTMLLinks(httpBody)
@@ -83,18 +96,12 @@ func main() {
 			if sitemapLink != "" {
 				newLinks = append(newLinks, sitemapLink)
 				sitemapLinks = append(sitemapLinks, sitemapLink)
-				fmt.Println("\t-x- Adding Link:", sitemapLink)
+				// fmt.Println("\t-x- Adding Link:", sitemapLink)
 			}
 		}
 	}
 
-	// fmt.Println(sitemapLinks)
-
-	// TODO:
-	// (Optimize with goroutines)
-	// Use linked list for bfs newLinks queue if necessary - "container/list"
-	// Once no more new links can be found, build XML sitemap with found links
-	// Output the built XML to stdout, or file specified by command-line flag
+	return sitemapLinks
 }
 
 func trimURLPath(urlString string) (string, error) {
