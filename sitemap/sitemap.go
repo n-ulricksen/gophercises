@@ -32,8 +32,9 @@ func main() {
 	newLinks := []string{urlInputString}
 	var sitemapLinks []string
 
+	fmt.Println("INPUT URL:", parsedInputUrl)
+
 	for len(newLinks) > 0 {
-		fmt.Println("QUEUE:", newLinks)
 		link := newLinks[0]
 		newLinks = newLinks[1:]
 
@@ -46,6 +47,8 @@ func main() {
 		}
 		defer httpBody.Close()
 
+		fmt.Println("-x- Parsing URL:", currentUrl.String())
+
 		// Find all links on the page
 		possibleLinks, err := linkparser.ParseHTMLLinks(httpBody)
 		if err != nil {
@@ -54,7 +57,6 @@ func main() {
 
 		for _, l := range possibleLinks {
 			u, err := url.Parse(l.Href)
-
 			// Skip any invalid urls
 			if err != nil {
 				continue
@@ -75,40 +77,55 @@ func main() {
 			if linkInDomain(u, parsedInputUrl) {
 				sitemapLink = u.String()
 			} else if isRelativeLink(u) {
-				sitemapLink = relToAbsURL(u.String(), urlInputString)
+				sitemapLink = relToAbsURL(u.String(), currentUrl.String())
 			}
 
 			if sitemapLink != "" {
 				newLinks = append(newLinks, sitemapLink)
 				sitemapLinks = append(sitemapLinks, sitemapLink)
+				fmt.Println("\t-x- Adding Link:", sitemapLink)
 			}
 		}
-
 	}
 
-	fmt.Println(sitemapLinks)
-
-	// for site := range visitedLinks {
-	// 	fmt.Println(site)
-	// }
+	// fmt.Println(sitemapLinks)
 
 	// TODO:
 	// (Optimize with goroutines)
+	// Use linked list for bfs newLinks queue if necessary - "container/list"
 	// Once no more new links can be found, build XML sitemap with found links
 	// Output the built XML to stdout, or file specified by command-line flag
 }
 
-func relToAbsURL(relUrl string, baseUrl string) string {
+func trimURLPath(urlString string) (string, error) {
+	u, err := url.Parse(urlString)
+	if err != nil {
+		return "", err
+	}
+	trimmed := fmt.Sprintf("%v://%v/", u.Scheme, u.Hostname())
+	return trimmed, nil
+}
+
+func relToAbsURL(relUrl string, searchUrl string) string {
 	var absUrl string
 
-	absUrl += baseUrl
-	// Trim possible '/' at end of base URL
-	if absUrl[len(absUrl)-1] == byte('/') {
-		absUrl = absUrl[0 : len(absUrl)-1]
+	baseUrl, err := trimURLPath(searchUrl)
+	if err != nil {
+		log.Print("ERROR:", err)
 	}
-	// Add '/' to beginning of path if necessary
-	if relUrl[0] != byte('/') {
-		absUrl += "/"
+
+	// Make sure searchUrl ends with '/'
+	if searchUrl[len(searchUrl)-1] != byte('/') {
+		searchUrl += "/"
+	}
+
+	// If the relative path begins with '/', it is specifies a path relative to
+	// the baseUrl
+	if relUrl[0] == byte('/') {
+		relUrl = relUrl[1:]
+		absUrl += baseUrl
+	} else {
+		absUrl += searchUrl
 	}
 	absUrl += relUrl
 
