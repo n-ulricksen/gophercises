@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/xml"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -13,6 +15,9 @@ import (
 )
 
 func main() {
+	// File to store the generated sitemap upon completion
+	var xmlFilename string = "sitemap.xml"
+
 	// Get sitemap URL from command line arguments
 	args := os.Args[1:]
 	if len(args) != 1 {
@@ -27,15 +32,50 @@ func main() {
 		log.Fatal("URL parse error:", err)
 	}
 
+	// Get sitemap links from input URL by traversing links using BFS, stopping
+	// when no new links can be found
 	sitemapLinks := getSitemapLinks(parsedInputUrl)
 
-	fmt.Println(sitemapLinks)
+	// Once no more new links can be found, build XML sitemap with found links
+	xmlBytes := generateXML(sitemapLinks)
+
+	err = ioutil.WriteFile(xmlFilename, xmlBytes, 0664)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("-x- Sitemap creation complete... file saved at %v\n", xmlFilename)
 
 	// TODO:
-	// (Optimize with goroutines)
 	// Use linked list for bfs newLinks queue if necessary - "container/list"
-	// Once no more new links can be found, build XML sitemap with found links
 	// Output the built XML to stdout, or file specified by command-line flag
+	// Add depth parameter to getSitemapLinks (depth of BFS)
+	// (Optimize with goroutines)
+}
+
+type sitemapXML struct {
+	XMLName   xml.Name          `xml:"urlset"`
+	Locations []sitemapLocation `xml:"url"`
+}
+
+type sitemapLocation struct {
+	Location string `xml:"loc"`
+}
+
+func generateXML(links []string) []byte {
+	xmlBytes := []byte(xml.Header)
+
+	l := &sitemapXML{}
+	for _, link := range links {
+		l.Locations = append(l.Locations, sitemapLocation{link})
+	}
+
+	output, err := xml.MarshalIndent(l, "", "    ")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	xmlBytes = append(xmlBytes, output...)
+	return xmlBytes
 }
 
 func getSitemapLinks(parsedInputUrl *url.URL) []string {
