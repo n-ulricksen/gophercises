@@ -37,7 +37,7 @@ func main() {
 	sitemapLinks := getSitemapLinks(parsedInputUrl)
 
 	// Once no more new links can be found, build XML sitemap with found links
-	xmlBytes := generateXML(sitemapLinks)
+	xmlBytes := generateSitemapXML(sitemapLinks)
 
 	err = ioutil.WriteFile(xmlFilename, xmlBytes, 0664)
 	if err != nil {
@@ -61,20 +61,20 @@ type sitemapLocation struct {
 	Location string `xml:"loc"`
 }
 
-func generateXML(links []string) []byte {
+func generateSitemapXML(links []string) []byte {
 	xmlBytes := []byte(xml.Header)
 
-	l := &sitemapXML{}
+	sitemap := &sitemapXML{}
 	for _, link := range links {
-		l.Locations = append(l.Locations, sitemapLocation{link})
+		sitemap.Locations = append(sitemap.Locations, sitemapLocation{link})
 	}
 
-	output, err := xml.MarshalIndent(l, "", "    ")
+	output, err := xml.MarshalIndent(sitemap, "", "    ")
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	xmlBytes = append(xmlBytes, output...)
+
 	return xmlBytes
 }
 
@@ -88,14 +88,14 @@ func getSitemapLinks(parsedInputUrl *url.URL) []string {
 	fmt.Println("-x- Input URL:", parsedInputUrl)
 
 	for len(newLinks) > 0 {
-		link := newLinks[0]
+		currentLink := newLinks[0]
 		newLinks = newLinks[1:]
 
 		// Parse the user specified URL, make HTTP request
-		currentUrl, parseErr := url.Parse(link)
-		httpBody, getErr := getHTTPBody(currentUrl.String())
+		currentUrl, parseErr := url.Parse(currentLink)
+		httpBody, httpErr := getHTTPBody(currentUrl.String())
 		// Skip invalid links or pages requiring authentication
-		if parseErr != nil || getErr != nil {
+		if parseErr != nil || httpErr != nil {
 			continue
 		}
 		defer httpBody.Close()
@@ -103,34 +103,35 @@ func getSitemapLinks(parsedInputUrl *url.URL) []string {
 		// fmt.Println("-x- Parsing URL:", currentUrl.String())
 
 		// Find all links on the page
-		possibleLinks, err := linkparser.ParseHTMLLinks(httpBody)
+		linksOnPage, err := linkparser.ParseHTMLLinks(httpBody)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		for _, l := range possibleLinks {
+		for _, l := range linksOnPage {
 			u, err := url.Parse(l.Href)
 			// Skip any invalid urls
 			if err != nil {
 				continue
 			}
 
+			currentPage := u.String()
 			// Check if link has been visited
-			if visitedLinks[u.String()] {
+			if visitedLinks[currentPage] {
 				continue
 			}
-			visitedLinks[u.String()] = true
+			visitedLinks[currentPage] = true
 
 			// Do not include empty links or anchor tag links
-			if u.String() == "" || isAnchorLink(u) {
+			if currentPage == "" || isAnchorLink(u) {
 				continue
 			}
 
 			var sitemapLink string
 			if linkInDomain(u, parsedInputUrl) {
-				sitemapLink = u.String()
+				sitemapLink = currentPage
 			} else if isRelativeLink(u) {
-				sitemapLink = relToAbsURL(u.String(), currentUrl.String())
+				sitemapLink = relToAbsURL(currentPage, currentUrl.String())
 			}
 
 			if sitemapLink != "" {
