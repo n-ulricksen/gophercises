@@ -22,6 +22,7 @@ func main() {
 	// Flags
 	filename := flag.String("file", xmlFilename,
 		"used to specify file in to store XML sitemap to")
+	searchDepth := flag.Int("depth", 0, "how many layers deep to search for links")
 	helpFlag := flag.Bool("help", false, "display the help message")
 	flag.Parse()
 
@@ -49,7 +50,7 @@ func main() {
 
 	// Get sitemap links from input URL by traversing links using BFS, stopping
 	// when no new links can be found
-	sitemapLinks := getSitemapLinks(parsedInputUrl)
+	sitemapLinks := getSitemapLinks(parsedInputUrl, *searchDepth)
 
 	// Once no more new links can be found, build XML sitemap with found links
 	xmlBytes := generateSitemapXML(sitemapLinks)
@@ -92,66 +93,71 @@ func generateSitemapXML(links []string) []byte {
 	return xmlBytes
 }
 
-func getSitemapLinks(parsedInputUrl *url.URL) []string {
+func getSitemapLinks(parsedInputUrl *url.URL, depth int) []string {
 	// TODO: Break apart this monster function
 	// Check each link to see if it is in the sitemap domain
 	visitedLinks := map[string]bool{parsedInputUrl.String(): true}
-	newLinks := []string{parsedInputUrl.String()}
+	queue := []string{}
+	nextQueue := []string{parsedInputUrl.String()}
 	var sitemapLinks []string
 
 	fmt.Println("Creating sitemap from URL:", parsedInputUrl)
 
-	for len(newLinks) > 0 {
-		currentLink := newLinks[0]
-		newLinks = newLinks[1:]
+	for i := 0; i <= depth; i++ {
+		// fmt.Println("-x- DEPTH:", i)
+		queue = nextQueue
+		for len(queue) > 0 {
+			currentLink := queue[0]
+			queue = queue[1:]
 
-		// Parse the user specified URL, make HTTP request
-		currentUrl, parseErr := url.Parse(currentLink)
-		httpBody, httpErr := getHTTPBody(currentUrl.String())
-		// Skip invalid links or pages requiring authentication
-		if parseErr != nil || httpErr != nil {
-			continue
-		}
-		defer httpBody.Close()
+			// Parse the user specified URL, make HTTP request
+			currentUrl, parseErr := url.Parse(currentLink)
+			httpBody, httpErr := getHTTPBody(currentUrl.String())
+			// Skip invalid links or pages requiring authentication
+			if parseErr != nil || httpErr != nil {
+				continue
+			}
+			defer httpBody.Close()
 
-		// fmt.Println("-x- Parsing URL:", currentUrl.String())
+			// fmt.Println("-x- Parsing URL:", currentUrl.String())
 
-		// Find all links on the page
-		linksOnPage, err := linkparser.ParseHTMLLinks(httpBody)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		for _, l := range linksOnPage {
-			u, err := url.Parse(l.Href)
-			// Skip any invalid urls
+			// Find all links on the page
+			linksOnPage, err := linkparser.ParseHTMLLinks(httpBody)
 			if err != nil {
-				continue
+				log.Fatal(err)
 			}
 
-			currentPage := u.String()
-			// Check if link has been visited
-			if visitedLinks[currentPage] {
-				continue
-			}
-			visitedLinks[currentPage] = true
+			for _, l := range linksOnPage {
+				u, err := url.Parse(l.Href)
+				// Skip any invalid urls
+				if err != nil {
+					continue
+				}
 
-			// Do not include empty links or anchor tag links
-			if currentPage == "" || isAnchorLink(u) {
-				continue
-			}
+				currentPage := u.String()
+				// Check if link has been visited
+				if visitedLinks[currentPage] {
+					continue
+				}
+				visitedLinks[currentPage] = true
 
-			var sitemapLink string
-			if linkInDomain(u, parsedInputUrl) {
-				sitemapLink = currentPage
-			} else if isRelativeLink(u) {
-				sitemapLink = relToAbsURL(currentPage, currentUrl.String())
-			}
+				// Do not include empty links or anchor tag links
+				if currentPage == "" || isAnchorLink(u) {
+					continue
+				}
 
-			if sitemapLink != "" {
-				newLinks = append(newLinks, sitemapLink)
-				sitemapLinks = append(sitemapLinks, sitemapLink)
-				// fmt.Println("\t-x- Adding Link:", sitemapLink)
+				var sitemapLink string
+				if linkInDomain(u, parsedInputUrl) {
+					sitemapLink = currentPage
+				} else if isRelativeLink(u) {
+					sitemapLink = relToAbsURL(currentPage, currentUrl.String())
+				}
+
+				if sitemapLink != "" {
+					nextQueue = append(nextQueue, sitemapLink)
+					sitemapLinks = append(sitemapLinks, sitemapLink)
+					// fmt.Println("\t-x- Adding Link:", sitemapLink)
+				}
 			}
 		}
 	}
