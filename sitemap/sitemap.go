@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/xml"
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -18,11 +19,21 @@ func main() {
 	// File to store the generated sitemap upon completion
 	var xmlFilename string = "sitemap.xml"
 
+	// Flags
+	filename := flag.String("file", xmlFilename,
+		"used to specify file in to store XML sitemap to")
+	helpFlag := flag.Bool("help", false, "display the help message")
+	flag.Parse()
+
 	// Get sitemap URL from command line arguments
-	args := os.Args[1:]
+	args := flag.Args()
 	if len(args) != 1 {
-		printErrorMessage()
+		printHelpMessage()
 		os.Exit(1)
+	}
+	if *helpFlag {
+		printHelpMessage()
+		os.Exit(0)
 	}
 	urlInputString := args[0]
 
@@ -30,6 +41,10 @@ func main() {
 	parsedInputUrl, err := url.Parse(urlInputString)
 	if err != nil {
 		log.Fatal("URL parse error:", err)
+	}
+	if parsedInputUrl.Scheme == "" || parsedInputUrl.Hostname() == "" {
+		fmt.Println("Invalid URL...")
+		os.Exit(1)
 	}
 
 	// Get sitemap links from input URL by traversing links using BFS, stopping
@@ -39,15 +54,14 @@ func main() {
 	// Once no more new links can be found, build XML sitemap with found links
 	xmlBytes := generateSitemapXML(sitemapLinks)
 
-	err = ioutil.WriteFile(xmlFilename, xmlBytes, 0664)
+	err = ioutil.WriteFile(*filename, xmlBytes, 0664)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("-x- Sitemap creation complete... file saved at %v\n", xmlFilename)
+	fmt.Printf("Sitemap creation complete... file saved at %v.\n", *filename)
 
 	// TODO:
 	// Use linked list for bfs newLinks queue if necessary - "container/list"
-	// Output the built XML to stdout, or file specified by command-line flag
 	// Add depth parameter to getSitemapLinks (depth of BFS)
 	// (Optimize with goroutines)
 }
@@ -85,7 +99,7 @@ func getSitemapLinks(parsedInputUrl *url.URL) []string {
 	newLinks := []string{parsedInputUrl.String()}
 	var sitemapLinks []string
 
-	fmt.Println("-x- Input URL:", parsedInputUrl)
+	fmt.Println("Creating sitemap from URL:", parsedInputUrl)
 
 	for len(newLinks) > 0 {
 		currentLink := newLinks[0]
@@ -220,9 +234,9 @@ func getDomainFromURL(u *url.URL) string {
 	return strings.Join(urlParts[l-2:], ".")
 }
 
-func printErrorMessage() {
-	fmt.Println("Usage: ./sitemap <url>")
-	fmt.Println()
+func printHelpMessage() {
 	fmt.Println("This program builds a sitemap for the specified URL's domain")
 	fmt.Println("using the standard sitemap protocol.")
+	fmt.Println()
+	fmt.Println("Usage: ./sitemap (-file=<filename>) <url>")
 }
