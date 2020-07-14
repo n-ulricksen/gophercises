@@ -48,8 +48,15 @@ to quickly create a Cobra application.`,
 		}
 
 		tasks := database.List()
+		if len(tasks) == 0 {
+			fmt.Println("No tasks found.")
+			fmt.Println()
+			fmt.Println("Try adding a task with 'task add'.")
+			return
+		}
+		fmt.Println("Incomplete tasks:")
 		for i, task := range tasks {
-			fmt.Printf("%v. %v\n", i+1, task)
+			fmt.Printf("%d. %s\n", i+1, task.Task)
 		}
 	},
 }

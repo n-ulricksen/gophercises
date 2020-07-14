@@ -23,8 +23,11 @@ package cmd
 
 import (
 	"fmt"
+	"log"
+	"strconv"
 
 	"github.com/spf13/cobra"
+	"github.com/ulricksennick/gophercises/task-manager/db"
 )
 
 // doCmd represents the do command
@@ -37,9 +40,35 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
+	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("do called")
+		var database db.DB
+		var tasks []db.Task
+
+		err := database.Open("tasks.db", "tasks")
+		if err != nil {
+			log.Fatal(err)
+		}
+		tasks = database.List()
+
+		// Check task number is valid
+		completedTaskNum, err := strconv.Atoi(args[0])
+		if err != nil || !inRange(completedTaskNum, 1, len(tasks)) {
+			fmt.Printf("Invalid task number: \"%v\"\n\n", args[0])
+			fmt.Println("Run 'task-manager list' to view task numbers.")
+			return
+		}
+
+		// Delete task from DB
+		taskToDelete := tasks[completedTaskNum-1]
+		taskKey := taskToDelete.Key
+		database.Delete(taskKey)
+		fmt.Printf("Task \"%s\" completed.\n", taskToDelete.Task)
 	},
+}
+
+func inRange(x int, lower int, upper int) bool {
+	return x >= lower && x <= upper
 }
 
 func init() {

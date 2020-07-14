@@ -12,6 +12,11 @@ type DB struct {
 	BucketName []byte
 }
 
+type Task struct {
+	Key  []byte
+	Task []byte
+}
+
 func (db *DB) Open(fileName string, bucketName string) error {
 	// Return if connection is already established
 	if db.Conn != nil {
@@ -55,18 +60,29 @@ func (db *DB) Insert(value string) {
 	})
 }
 
-func (db *DB) List() []string {
-	var list []string
+func (db *DB) List() []Task {
+	var list []Task
+
 	db.Conn.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket(db.BucketName)
-
 		bucket.ForEach(func(k, v []byte) error {
-			list = append(list, string(v))
+			list = append(list, Task{
+				Key:  k,
+				Task: v,
+			})
 			return nil
 		})
-
 		return nil
 	})
 
 	return list
+}
+
+func (db *DB) Delete(key []byte) {
+	db.Conn.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(db.BucketName)
+		bucket.Delete(key)
+
+		return nil
+	})
 }

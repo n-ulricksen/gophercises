@@ -52,7 +52,7 @@ to quickly create a Cobra application.`,
 		newTask := strings.Join(args, " ")
 		database.Insert(newTask)
 
-		fmt.Printf("Added new task: %v\n", newTask)
+		fmt.Printf("Added \"%v\" to task list.\n", newTask)
 	},
 }
 
