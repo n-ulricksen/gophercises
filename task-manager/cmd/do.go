@@ -55,7 +55,7 @@ to quickly create a Cobra application.`,
 		completedTaskNum, err := strconv.Atoi(args[0])
 		if err != nil || !inRange(completedTaskNum, 1, len(tasks)) {
 			fmt.Printf("Invalid task number: \"%v\"\n\n", args[0])
-			fmt.Println("Run 'task-manager list' to view task numbers.")
+			fmt.Println("Run 'task list' to view task numbers.")
 			return
 		}
 
