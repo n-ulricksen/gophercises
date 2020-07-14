@@ -63,7 +63,6 @@ func main() {
 
 	// TODO:
 	// Use linked list for bfs newLinks queue if necessary - "container/list"
-	// Add depth parameter to getSitemapLinks (depth of BFS)
 	// (Optimize with goroutines)
 }
 
@@ -93,8 +92,8 @@ func generateSitemapXML(links []string) []byte {
 	return xmlBytes
 }
 
+// TODO: Break apart this monster function
 func getSitemapLinks(parsedInputUrl *url.URL, depth int) []string {
-	// TODO: Break apart this monster function
 	// Check each link to see if it is in the sitemap domain
 	visitedLinks := map[string]bool{parsedInputUrl.String(): true}
 	queue := []string{}
