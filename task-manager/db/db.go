@@ -13,6 +13,11 @@ type DB struct {
 }
 
 func (db *DB) Open(fileName string, bucketName string) error {
+	// Return if connection is already established
+	if db.Conn != nil {
+		return nil
+	}
+
 	// Open connection to database
 	conn, err := bolt.Open(fileName, 0600, nil)
 	if err != nil {
