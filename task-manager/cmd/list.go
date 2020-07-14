@@ -23,8 +23,10 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/spf13/cobra"
+	"github.com/ulricksennick/gophercises/task-manager/db"
 )
 
 // listCmd represents the list command
@@ -38,7 +40,17 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("list called")
+		var database db.DB
+
+		err := database.Open("tasks.db", "tasks")
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		tasks := database.List()
+		for i, task := range tasks {
+			fmt.Printf("%v. %v\n", i+1, task)
+		}
 	},
 }
 

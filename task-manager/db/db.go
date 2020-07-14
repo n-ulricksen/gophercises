@@ -1,7 +1,6 @@
-package main
+package db
 
 import (
-	"fmt"
 	"log"
 	"time"
 
@@ -23,11 +22,10 @@ func (db *DB) Open(fileName string, bucketName string) error {
 	// Create bucket
 	db.BucketName = []byte(bucketName)
 	conn.Update(func(tx *bolt.Tx) error {
-		bucket, err := tx.CreateBucketIfNotExists(db.BucketName)
+		_, err := tx.CreateBucketIfNotExists(db.BucketName)
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Opening bucket %v...\n", bucket)
 		return nil
 	})
 

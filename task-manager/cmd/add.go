@@ -23,8 +23,11 @@ package cmd
 
 import (
 	"fmt"
+	"log"
+	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/ulricksennick/gophercises/task-manager/db"
 )
 
 // addCmd represents the add command
@@ -37,8 +40,19 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
+	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("add called")
+		var database db.DB
+
+		err := database.Open("tasks.db", "tasks")
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		newTask := strings.Join(args, " ")
+		database.Insert(newTask)
+
+		fmt.Printf("Added new task: %v\n", newTask)
 	},
 }
 
