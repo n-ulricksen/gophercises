@@ -21,11 +21,6 @@ type Task struct {
 }
 
 func (db *DB) Open(bucketName string) error {
-	// Return if connection is already established
-	if db.Conn != nil {
-		return nil
-	}
-
 	// Determine user's home directory, location to store DB file
 	userHome, err := homedir.Dir()
 	if err != nil {
@@ -95,4 +90,8 @@ func (db *DB) Delete(key []byte) {
 
 		return nil
 	})
+}
+
+func (db *DB) Close() {
+	db.Conn.Close()
 }
