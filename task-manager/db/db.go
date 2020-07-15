@@ -5,7 +5,10 @@ import (
 	"time"
 
 	"github.com/boltdb/bolt"
+	"github.com/mitchellh/go-homedir"
 )
+
+const FILENAME = "tasks.db"
 
 type DB struct {
 	Conn       *bolt.DB
@@ -17,14 +20,21 @@ type Task struct {
 	Task []byte
 }
 
-func (db *DB) Open(fileName string, bucketName string) error {
+func (db *DB) Open(bucketName string) error {
 	// Return if connection is already established
 	if db.Conn != nil {
 		return nil
 	}
 
+	// Determine user's home directory, location to store DB file
+	userHome, err := homedir.Dir()
+	if err != nil {
+		return err
+	}
+
 	// Open connection to database
-	conn, err := bolt.Open(fileName, 0600, nil)
+	dbPath := userHome + "/" + FILENAME
+	conn, err := bolt.Open(dbPath, 0600, nil)
 	if err != nil {
 		return err
 	}

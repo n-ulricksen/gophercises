@@ -44,7 +44,7 @@ to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var database db.DB
 
-		err := database.Open("tasks.db", "tasks")
+		err := database.Open("tasks")
 		if err != nil {
 			log.Fatal(err)
 		}

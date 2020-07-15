@@ -45,7 +45,7 @@ to quickly create a Cobra application.`,
 		var database db.DB
 		var tasks []db.Task
 
-		err := database.Open("tasks.db", "tasks")
+		err := database.Open("tasks")
 		if err != nil {
 			log.Fatal(err)
 		}
