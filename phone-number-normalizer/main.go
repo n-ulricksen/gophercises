@@ -1,17 +1,20 @@
 package main
 
-import "fmt"
+import (
+	"bytes"
+	"fmt"
+)
 
 func main() {
 	fmt.Println("vim-go")
 }
 
 func normalize(phone string) string {
-	var normalized string
+	var buf bytes.Buffer
 	for _, ch := range phone {
 		if ch >= '0' && ch <= '9' {
-			normalized += string(ch)
+			buf.WriteRune(ch)
 		}
 	}
-	return normalized
+	return buf.String()
 }
