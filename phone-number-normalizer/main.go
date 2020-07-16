@@ -64,28 +64,13 @@ func main() {
 	}
 
 	// Normalize all phone numbers in phone_number table
-	phoneNumbers, err := getAllPhoneNumbers(db)
-	fmt.Println()
-	fmt.Println("Not normalized phone numbers:")
-	for _, p := range phoneNumbers {
-		fmt.Println(p.number)
-	}
-	must(err)
-	updateStatement := `
-		UPDATE phone_number
-		SET value = $1
-		WHERE id = $2`
-	for _, p := range phoneNumbers {
-		normalized := normalize(p.number)
-		_, err = db.Exec(updateStatement, normalized, p.id)
-		must(err)
-	}
+	must(normalizePhoneNumberTable(db))
 	fmt.Println()
 	fmt.Println("Normalized all entries in 'phone_number' table...")
 	fmt.Println()
 
 	// Verify numbers are normalized
-	phoneNumbers, err = getAllPhoneNumbers(db)
+	phoneNumbers, err := getAllPhoneNumbers(db)
 	fmt.Println("Normalized phone numbers:")
 	for _, p := range phoneNumbers {
 		fmt.Println(p.number)
@@ -172,6 +157,29 @@ func getAllPhoneNumbers(db *sql.DB) ([]phoneNumber, error) {
 	}
 
 	return phoneNumbers, nil
+}
+
+// Iterate over each row in phone_number table, updating row's value to its
+// normalized value
+func normalizePhoneNumberTable(db *sql.DB) error {
+	phoneNumbers, err := getAllPhoneNumbers(db)
+	if err != nil {
+		return err
+	}
+
+	updateStatement := `
+		UPDATE phone_number
+		SET value = $1
+		WHERE id = $2`
+	for _, p := range phoneNumbers {
+		normalized := normalize(p.number)
+		_, err = db.Exec(updateStatement, normalized, p.id)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func must(err error) {
